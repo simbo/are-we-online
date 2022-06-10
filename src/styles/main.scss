@@ -105,11 +105,17 @@ button {
 
 .c-host {
   display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 0.5rem 2rem;
 
-  &__input {
+  &__form {
     margin: 0 0.2rem;
-    min-width: 18rem;
+    width: 18rem;
+  }
+
+  &__input {
+    width: 100%;
   }
 
   &__button,
@@ -122,6 +128,32 @@ button {
 
   &__status {
     cursor: default;
+    position: relative;
+  }
+
+  &__loading-bar {
+    position: absolute;
+    top: -2px;
+    left: calc(50% - 2px);
+    width: 4px;
+    height: calc(100% + 4px);
+    overflow: hidden;
+    animation: spin 0.5s linear infinite;
+
+    &::before {
+      display: none;
+    }
+
+    &--loading::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 4px;
+      position: absolute;
+      top: 0;
+      background: #858585;
+      border-radius: 50%;
+    }
   }
 
   &__button--remove {
@@ -137,5 +169,14 @@ button {
 .c-current-ip {
   &__label {
     margin-right: 0.4em;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(359deg);
   }
 }

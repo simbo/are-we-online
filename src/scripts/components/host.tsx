@@ -60,12 +60,13 @@ export class Host extends Component<HostProps, HostState> {
 
   public render({ id, name, valid }: HostProps, { status, responseTime, loading }: HostState): VNode {
     return (
-      <div class={`c-host ${loading ? 'c-host--loading' : ''}`}>
+      <div class="c-host">
         <div
           class={`c-host__status c-host__status--${status}`}
           title={status === HostStatus.Online && !!responseTime ? `${responseTime}ms` : ''}
         >
           {hostStatusIcons[status]}
+          <div class={`c-host__loading-bar ${loading ? 'c-host__loading-bar--loading' : ''}`}></div>
         </div>
         <form ref={this.refHostForm} class="c-host__form" onSubmit={this.onChangeInput}>
           <input
