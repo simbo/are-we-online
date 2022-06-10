@@ -1,0 +1,143 @@
+$serif: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial,
+  sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+$monospace: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  line-height: 1.4;
+}
+
+html {
+  font-family: $serif;
+  font-size: 16px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  box-sizing: border-box;
+}
+
+input,
+button {
+  background: inherit;
+  color: inherit;
+  border: none;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+input {
+  font-family: $monospace;
+  font-size: inherit;
+  background: inherit;
+  color: inherit;
+  border: none;
+  border-radius: 0.125em;
+  padding: 0.4em 0.6em;
+
+  &:focus {
+    outline: 2px #333 solid;
+    background: #252526;
+  }
+
+  &:hover {
+    background: #252526;
+  }
+}
+
+label[for] {
+  cursor: pointer;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.c-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &__hosts-list {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__bar {
+    width: 100%;
+    padding: 0 1rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+  }
+
+  &__add-host {
+    margin: 1rem 0 0 2rem;
+    align-self: flex-start;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 2rem;
+    height: 2rem;
+    font-weight: bolder;
+    font-size: 1.5rem;
+  }
+
+  &__reset-defaults {
+  }
+}
+
+.c-host {
+  display: flex;
+  padding: 0.5rem 2rem;
+
+  &__input {
+    margin: 0 0.2rem;
+    min-width: 18rem;
+  }
+
+  &__button,
+  &__status {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 2rem;
+  }
+
+  &__status {
+    cursor: default;
+  }
+
+  &__button--remove {
+    visibility: hidden;
+  }
+
+  &:hover &__button--remove {
+    visibility: visible;
+  }
+}
+
+.c-ping-interval {
+  &__label {
+    margin-right: 0.2em;
+  }
+}

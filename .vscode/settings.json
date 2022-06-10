@@ -1,0 +1,7 @@
+{
+  "prettier.configPath": "./.prettierrc",
+  "prettier.packageManager": "yarn",
+  "prettier.prettierPath": "./node_modules/prettier",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+}

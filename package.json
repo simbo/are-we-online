@@ -1,0 +1,24 @@
+{
+  "name": "are-we-online",
+  "description": "Test if hosts are reachable.",
+  "version": "0.1.0",
+  "repository": "https://github.com/simbo/are-we-online",
+  "author": "Simon Lepel <simbo@simbo.de> (https://simbo.de/)",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html --public-url .",
+    "prebuild": "rm -rf ./dist"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "2.6.0",
+    "css-reset-and-normalize": "^2.3.6",
+    "parcel": "^2.6.0",
+    "preact": "^10.7.3",
+    "prettier": "^2.6.2"
+  },
+  "dependencies": {
+    "prepend-http": "^4.0.0"
+  }
+}
