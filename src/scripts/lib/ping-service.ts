@@ -85,7 +85,7 @@ export class PingService {
 
   private stopPingInterval(): void {
     if (this.timeout) {
-      clearTimeout(this.timeout);
+      window.clearTimeout(this.timeout);
     }
   }
 
@@ -112,6 +112,6 @@ export class PingService {
       responseTime: Date.now() - this.startedAt,
       loading: false
     });
-    this.timeout = setTimeout(() => this.ping(), this.interval);
+    this.timeout = window.setTimeout(() => this.ping(), this.interval);
   };
 }
