@@ -1,51 +1,72 @@
 import { Component, createRef, h, VNode } from 'preact';
-import { HostStatus } from '../models/host-status.enum';
+import { Subject, takeUntil } from 'rxjs';
 
-interface PingIntervalProps {
-  interval: number;
-  onIntervalChange: (interval: number) => void;
+import { AppAction } from '../../store/app/app-actions';
+import { appStore } from '../../store/app/app-store';
+import { didObjectsChange } from '../lib/did-objects-change';
+import { filterChanged } from '../lib/filter-changed';
+import { PING_MAX_INTERVAL, PING_MIN_INTERVAL } from '../lib/ping-service';
+
+const PING_INTERVAL_NAME = 'ping-interval';
+
+interface PingIntervalState {
+  pingInterval: number;
 }
 
-export class PingInterval extends Component<PingIntervalProps, {}> {
+export class PingInterval extends Component<{}, {}> {
+  private readonly unsubscribeSubject = new Subject<void>();
   private readonly refPingIntervalInput = createRef<HTMLInputElement>();
   private readonly refPingIntervalForm = createRef<HTMLFormElement>();
 
-  constructor(props: PingIntervalProps, state: never) {
+  constructor(props: never, state: PingIntervalState) {
     super(props, state);
-    this.setState({ status: HostStatus.Unknown, loading: false });
+    appStore.state$
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(filterChanged())
+      .subscribe(({ pingInterval }) => this.setState({ pingInterval }));
   }
 
-  public render({ interval }: PingIntervalProps, state: never): VNode {
+  public componentWillUnmount(): void {
+    this.unsubscribeSubject.next();
+  }
+
+  public shouldComponentUpdate(nextProps: never, nextState: PingIntervalState): boolean {
+    return didObjectsChange(this.state, nextState);
+  }
+
+  public render(props: never, { pingInterval }: PingIntervalState): VNode {
     return (
       <div class="c-ping-interval">
-        <form ref={this.refPingIntervalForm} class="c-ping-interval__form" onSubmit={this.onSubmit}>
+        <form ref={this.refPingIntervalForm} class="c-ping-interval__form" onSubmit={this.onChangeInput}>
           <label class="c-ping-interval__label" for="ping-interval">
             Ping Interval:
           </label>
           <input
             class={`c-ping-interval__input`}
-            id="ping-interval"
-            name="ping-interval"
+            id={PING_INTERVAL_NAME}
+            name={PING_INTERVAL_NAME}
             type="number"
-            value={interval}
-            min="2000"
-            max="3600000"
+            value={pingInterval}
+            min={`${PING_MIN_INTERVAL}`}
+            max={`${PING_MAX_INTERVAL}`}
             required
             placeholder="Milliseconds"
             ref={this.refPingIntervalInput}
-            onChange={this.onSubmit}
+            onChange={this.onChangeInput}
           />
         </form>
       </div>
     );
   }
 
-  private readonly onSubmit = (event: Event): void => {
+  private readonly onChangeInput = (event: Event): void => {
     event.preventDefault();
     const form = this.refPingIntervalForm.current;
     if (form?.checkValidity()) {
       const data = new FormData(form);
-      this.props.onIntervalChange(parseInt(data.get(`ping-interval`)?.toString() || '0', 10));
+      appStore.dispatch(AppAction.SetPingInterval, {
+        pingInterval: parseInt(data.get(PING_INTERVAL_NAME)?.toString() || `${PING_MIN_INTERVAL}`, 10)
+      });
     }
   };
 }

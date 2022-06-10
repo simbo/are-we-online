@@ -1,16 +1,18 @@
 import { Component, createRef, h, VNode } from 'preact';
+import { Subject, takeUntil } from 'rxjs';
+
+import { AppAction } from '../../store/app/app-actions';
+import { appStore } from '../../store/app/app-store';
+import { didObjectsChange } from '../lib/did-objects-change';
+import { filterChanged } from '../lib/filter-changed';
+import { PingService } from '../lib/ping-service';
 import { HostStatus } from '../models/host-status.enum';
-import prependHttp from 'prepend-http';
+import { hostStatusIcons } from '../models/icon-maps';
 
 interface HostProps {
   id: number;
   name: string;
   valid: boolean;
-  interval: number;
-  paused: boolean;
-  onHostNameChange: (id: number, name: string) => void;
-  onHostStatusChange: (id: number, status: HostStatus) => void;
-  onHostRemove: (id: number) => void;
 }
 
 interface HostState {
@@ -19,22 +21,41 @@ interface HostState {
   loading: boolean;
 }
 
-const statusSymbols = {
-  [HostStatus.Offline]: '🔴',
-  [HostStatus.Online]: '🟢',
-  [HostStatus.Unknown]: '❔'
-};
-
 export class Host extends Component<HostProps, HostState> {
   private readonly refHostInput = createRef<HTMLInputElement>();
   private readonly refHostForm = createRef<HTMLFormElement>();
-
-  private pingTimeout?: number;
-  private pingStart?: number;
+  private readonly pingService = new PingService();
+  private readonly unsubscribeSubject = new Subject<void>();
 
   constructor(props: HostProps, state: HostState) {
     super(props, state);
-    this.setState({ status: HostStatus.Unknown, loading: false });
+    appStore.state$
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(filterChanged())
+      .subscribe(({ hosts, pingInterval, pingPaused }) => {
+        this.pingService.set({
+          hostname: hosts[this.props.id]?.name || '',
+          interval: pingInterval,
+          paused: pingPaused
+        });
+      });
+    this.setState({ status: HostStatus.Unknown });
+    this.pingService.state$
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(filterChanged())
+      .subscribe(({ status, responseTime, loading }) => {
+        this.setState({ status, responseTime, loading });
+      });
+  }
+
+  public shouldComponentUpdate(nextProps: HostProps, nextState: HostState): boolean {
+    return didObjectsChange(this.props, nextProps, this.state, nextState);
+  }
+
+  public componentDidUpdate(prevProps: HostProps, prevState: HostState) {
+    if (this.state.status !== prevState.status) {
+      appStore.dispatch(AppAction.SetHostStatus, { id: this.props.id, status: this.state.status });
+    }
   }
 
   public render({ id, name, valid }: HostProps, { status, responseTime, loading }: HostState): VNode {
@@ -42,9 +63,9 @@ export class Host extends Component<HostProps, HostState> {
       <div class={`c-host ${loading ? 'c-host--loading' : ''}`}>
         <div
           class={`c-host__status c-host__status--${status}`}
-          title={status === HostStatus.Online || (loading && responseTime !== undefined) ? `${responseTime}ms` : ''}
+          title={status === HostStatus.Online && !!responseTime ? `${responseTime}ms` : ''}
         >
-          {statusSymbols[status]}
+          {hostStatusIcons[status]}
         </div>
         <form ref={this.refHostForm} class="c-host__form" onSubmit={this.onChangeInput}>
           <input
@@ -72,38 +93,27 @@ export class Host extends Component<HostProps, HostState> {
     if (!this.props.valid) {
       this.refHostInput.current?.focus();
     }
-    if (!this.props.paused) {
-      this.startPing();
-    }
   }
 
-  public componentDidUpdate(prevProps: HostProps, prevState: HostState): boolean {
-    if (this.props.name !== prevProps.name || this.props.interval !== prevProps.interval) {
-      this.startPing();
-    } else if (this.props.paused !== prevProps.paused) {
-      if (this.props.paused) {
-        this.stopPing();
-      } else {
-        this.startPing();
-      }
-    }
-    return true;
+  public componentWillUnmount(): void {
+    this.pingService.pause();
+    this.unsubscribeSubject.next();
   }
 
   private readonly onClickRemove = (): void => {
-    this.props.onHostRemove(this.props.id);
+    appStore.dispatch(AppAction.RemoveHost, { id: this.props.id });
   };
 
   private readonly onKeyDownInput = (): void => {
-    this.stopPing();
+    this.pingService.pause();
   };
 
   private readonly onFocusInput = (): void => {
-    this.stopPing();
+    this.pingService.pause();
   };
 
   private readonly onBlurInput = (): void => {
-    this.startPing();
+    this.pingService.unpause();
   };
 
   private readonly onChangeInput = (event: Event): void => {
@@ -111,35 +121,10 @@ export class Host extends Component<HostProps, HostState> {
     const form = this.refHostForm.current;
     if (form?.checkValidity()) {
       const data = new FormData(form);
-      this.props.onHostNameChange(this.props.id, data.get(`host-${this.props.id}`)?.toString() || '');
+      appStore.dispatch(AppAction.SetHostname, {
+        id: this.props.id,
+        name: data.get(`host-${this.props.id}`)?.toString() || ''
+      });
     }
   };
-
-  private startPing(): void {
-    this.stopPing();
-    if (!this.props.valid) {
-      return;
-    }
-    this.pingStart = new Date().getTime();
-    this.setState({ loading: true });
-    const { hostname, protocol = '', port } = new URL(prependHttp(this.props.name));
-    fetch(`${protocol}//${hostname}${port ? `:${port}` : ''}/?${Date.now()}`, {
-      mode: 'no-cors',
-      cache: 'no-cache'
-    })
-      .then(() => this.onPong(HostStatus.Online))
-      .catch(() => this.onPong(HostStatus.Offline));
-  }
-
-  private stopPing(): void {
-    if (this.pingTimeout) {
-      clearTimeout(this.pingTimeout);
-    }
-  }
-
-  private onPong(status: HostStatus.Online | HostStatus.Offline): void {
-    this.setState({ status, responseTime: new Date().getTime() - (this.pingStart || 0), loading: false });
-    this.props.onHostStatusChange(this.props.id, status);
-    this.pingTimeout = setTimeout(() => this.startPing(), this.props.interval);
-  }
 }

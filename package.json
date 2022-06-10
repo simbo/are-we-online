@@ -9,16 +9,21 @@
   "scripts": {
     "start": "parcel src/index.html",
     "build": "parcel build src/index.html --public-url .",
+    "deploy": "ssh pisrv 'mkdir -p /var/www/html/are-we-online; rm -f /var/www/html/are-we-online/*' && scp ./dist/* pisrv:/var/www/html/are-we-online/",
+    "predeploy": "yarn build",
     "prebuild": "rm -rf ./dist"
   },
+  "dependencies": {
+    "prepend-http": "^4.0.0",
+    "rxjs": "^7.5.5",
+    "small-store": "^2.0.0"
+  },
   "devDependencies": {
-    "@parcel/transformer-sass": "2.6.0",
+    "@parcel/transformer-sass": "^2.6.0",
+    "@types/node": "^16",
     "css-reset-and-normalize": "^2.3.6",
     "parcel": "^2.6.0",
     "preact": "^10.7.3",
     "prettier": "^2.6.2"
-  },
-  "dependencies": {
-    "prepend-http": "^4.0.0"
   }
 }
